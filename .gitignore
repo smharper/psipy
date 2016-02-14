@@ -65,4 +65,4 @@ target/
 *.swp
 
 # Data files
-data/*.h5
+data/*.p

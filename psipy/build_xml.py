@@ -1,9 +1,13 @@
 import numpy as np
+import pickle
 
 import openmc
 
 
-def build_inputs(**kwargs):
+def build_inputs(n_mesh_bins, energy_bins, n_azim_bins, **kwargs):
+    """Build OpenMC input XML files for a pincell with detailed flux tallying"""
+    if n_azim_bins % 8 != 0: raise ValueError("The number of azimuthal bins "
+         "must be divisible by eight")
     pitch = 0.62992*2
 
     ####################
@@ -131,17 +135,15 @@ def build_inputs(**kwargs):
     ####################
 
     mesh = openmc.Mesh(mesh_id=1)
-    bins = 10
-    delta = pitch / 2.0 / (bins + 1)
-    mesh.dimension = [bins, bins, 1]
+    delta = pitch / 2.0 / (n_mesh_bins + 1)
+    mesh.dimension = [n_mesh_bins, n_mesh_bins, 1]
     mesh.lower_left = [-delta/2.0, -delta/2.0, -1.e50]
     mesh.upper_right = [pitch/2.0 + delta/2.0, pitch/2.0 + delta/2.0, 1.e50]
 
-    #energy_filter = openmc.Filter(type='energy', bins=(0.0, 0.625e-6, 20.0))
-    energy_filter = openmc.Filter(type='energy', bins=np.logspace(-8, 1, 90+1))
+    energy_filter = openmc.Filter(type='energy', bins=energy_bins)
     mesh_filter = openmc.Filter()
     mesh_filter.mesh = mesh
-    azim_filter = openmc.Filter(type='azimuthal', bins=20)
+    azim_filter = openmc.Filter(type='azimuthal', bins=n_azim_bins)
 
     tally = openmc.Tally(tally_id=1)
     tally.add_filter(energy_filter)
@@ -184,17 +186,37 @@ def build_inputs(**kwargs):
     plotfile.export_to_xml()
 
 
-def run_small():
-    build_inputs(inactive=5, batches=25, particles=1000)
+def extract_data(statepoint_name, output_name):
+    """Save the tally data from a statepoint as a pickled DataFrame."""
+    sp = openmc.StatePoint(statepoint_name)
+    with open(output_name, 'wb') as fh:
+        pickle.dump(sp.tallies[1].get_pandas_dataframe(), fh)
 
 
-def run_medium():
-    build_inputs(inactive=5, batches=55, particles=10000)
+def small_example():
+    n_mesh_bins = 10
+    energy_bins = [0.0, 0.625, 20.0]
+    n_azim_bins = 16
+    build_inputs(n_mesh_bins, energy_bins, n_azim_bins, 
+         inactive=5, batches=25, particles=1000)
 
 
-def run_big():
-    build_inputs(inactive=5, batches=105, particles=int(1e6))
+def medium_example():
+    n_mesh_bins = 10
+    energy_bins = np.logspace(-8, 1, 9+1)
+    n_azim_bins = 16
+    build_inputs(n_mesh_bins, energy_bins, n_azim_bins, 
+         inactive=5, batches=55, particles=10000)
+
+
+def big_example():
+    n_mesh_bins = 10
+    energy_bins = np.logspace(-8, 1, 9+1)
+    n_azim_bins = 200
+    build_inputs(n_mesh_bins, energy_bins, n_azim_bins, 
+         inactive=5, batches=105, particles=int(1e6))
 
 
 if __name__ == '__main__':
-    run_medium()
+    small_example()
+    #extract_data('statepoint.25.h5', 'temp.p')

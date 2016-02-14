@@ -2,8 +2,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-
-import openmc
+import pickle
 
 
 class Viewer(object):
@@ -227,12 +226,12 @@ if __name__ == '__main__':
     data_path = os.path.join(root_path, 'data')
 
     # Pick an appropriate data file.
-    #data_file = 'fine_E_coarse_azim.h5'
-    data_file = 'fine_azim_coarse_E.h5'
+    #data_file = 'fine_E_coarse_azim.p'
+    data_file = 'fine_azim_coarse_E.p'
     data_path = os.path.join(data_path, data_file)
 
     # Read the tally data and start the gui.
-    sp = openmc.StatePoint(data_path)
-    df = sp.tallies[1].get_pandas_dataframe()
+    with open(data_path, 'rb') as fh:
+        df = pickle.load(fh)
     viewer = Viewer(df)
     plt.show()
