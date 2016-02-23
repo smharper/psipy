@@ -1,6 +1,8 @@
 # Psipy
 An interactive, educational neutron flux plotting utility.
 
+![Example image](https://github.com/smharper/psipy/blob/master/example.png)
+
 ## To use:
 Download the data with
 ```
