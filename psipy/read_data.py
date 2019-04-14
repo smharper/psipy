@@ -4,6 +4,8 @@ import numpy as np
 import os
 import pickle
 
+from radial_plot import redundantly_populate
+
 
 class Viewer(object):
     def __init__(self, df):
@@ -19,8 +21,8 @@ class Viewer(object):
              aspect='equal')
         self.spec_ax = self.fig.add_axes((0.55, 0.55, 0.40, 0.40))
         self.spec_ax.set_xscale('log')
-        self.azim_ax = self.fig.add_axes((0.55, 0.05, 0.40, 0.40))
-        self.azim_ax.set_xlim(-np.pi, np.pi)
+        self.azim_ax = self.fig.add_axes((0.55, 0.05, 0.40, 0.40), 
+                                         projection='polar')
 
         # Format the data.
         self.format_dataframe()
@@ -188,14 +190,20 @@ class Viewer(object):
                      & (self.df['energy'] == e_bin)]
         flux = np.concatenate(([df['mean'].values[0]], df['mean'].values))
         if self.azim_line is not None: self.azim_line.remove()
-        self.azim_line, = self.azim_ax.step(self.azim_edges, flux, c='green')
+        # self.azim_line, = self.azim_ax.step(self.azim_edges, flux, c='green')
+        angle_refine = np.pi/360
+        angles, flux = redundantly_populate(self.azim_edges[:-1], flux[1:], angle_refine)
+        self.azim_line, = self.azim_ax.plot(angles, flux, c='green')
+        ### TODO fix marker
         if self.azim_marker is not None: self.azim_marker.remove()
         self.azim_marker = self.azim_ax.axvline(azim)
 
         # Adjust the azimuthal spectrum yscale.
         pad = 0.05 * (flux.max() - flux.min())
         pad = max(pad, 0.1*flux.max())
-        self.azim_ax.set_ylim(flux.min() - pad, flux.max() + pad)
+        self.azim_ax.set_rmax(flux.max() + pad)
+        self.azim_ax.set_rmin(0)
+        self.azim_ax.set_theta_zero_location("W")
 
         # Draw an azimuthal ray on the spatial plot.
         x0 = i_x*delta
