@@ -219,7 +219,7 @@ class Viewer(object):
             # Unpack the current phase-space coordinates.
             i_x, i_y, azim, energy = self.coords
             self.cur_e = energy
-            self.cur_azim = azim
+            self.cur_a = azim
 
             # Find the azimuthal and energy bin indices.
             a_bin = np.searchsorted(self.azim_edges, azim) - 1
@@ -258,9 +258,9 @@ class Viewer(object):
                      & (self.df['energy'] == e_bin)]
         flux = np.concatenate(([df['mean'].values[0]], df['mean'].values))
         if self.azim_line is not None: self.azim_line.remove()
-        # self.azim_line, = self.azim_ax.step(self.azim_edges, flux, c='green')
-        angle_refine = np.pi/360
-        angles, flux = redundantly_populate(self.azim_edges[:-1], flux[1:], angle_refine)
+        angle_refine = np.pi/360 
+        angles, flux = redundantly_populate(self.azim_edges[:-1], flux[1:], 
+                                            angle_refine)
         self.azim_line, = self.azim_ax.plot(angles, flux, c='green')
         if self.azim_marker is not None: self.azim_marker.remove()
         self.azim_marker = self.azim_ax.axvline(azim)

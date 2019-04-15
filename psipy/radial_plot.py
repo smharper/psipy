@@ -7,12 +7,14 @@ def redundantly_populate(angles, values, refine_angle):
     ----------
     angles : np.ndarray
     values : np.ndarray
+    refine_angle : int
+        Maximum angle width in radians
 
     Assumes evenly spaced azimuthal bins
     """
     n_angles = len(angles)
     bin_width = angles[1] - angles[0]
-    refine_level = int(np.floor(bin_width/refine_angle))
+    refine_level = int(np.ceil(bin_width/refine_angle))
     # Check if refinement is required
     if refine_level < 2:
         return angles, values
