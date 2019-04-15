@@ -1,8 +1,11 @@
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
 import numpy as np
 import os
 import pickle
+
+from radial_plot import redundantly_populate
 
 
 class Viewer(object):
@@ -19,8 +22,12 @@ class Viewer(object):
              aspect='equal')
         self.spec_ax = self.fig.add_axes((0.55, 0.55, 0.40, 0.40))
         self.spec_ax.set_xscale('log')
-        self.azim_ax = self.fig.add_axes((0.55, 0.05, 0.40, 0.40))
-        self.azim_ax.set_xlim(-np.pi, np.pi)
+        self.azim_ax = self.fig.add_axes((0.55, 0.05, 0.40, 0.40), 
+                                         projection='polar')
+
+        # Add buttons
+        self.add_energy_button()
+        self.add_angle_button()
 
         # Format the data.
         self.format_dataframe()
@@ -39,6 +46,41 @@ class Viewer(object):
 
         # Draw the plots with the starting data.
         self.update_plot()
+
+    def add_energy_button(self):
+        # Initialize energy button
+        self.e_button_fig = plt.figure()
+        self.energy_up_ax = self.e_button_fig.add_axes((0.05, 0.65, 0.90, 0.30))
+        self.energy_text_ax = self.e_button_fig.add_axes((0.05, 0.45, 0.90, 0.15))
+        self.energy_text = self.energy_text_ax.text(0.5, 0.5, 'Energy Test', 
+                                                    horizontalalignment='center',
+                                                    fontsize=12)
+        self.energy_text_ax.axis('off')
+        self.energy_down_ax = self.e_button_fig.add_axes((0.05, 0.05, 0.90, 0.30))
+
+        self.e_up_button = Button(self.energy_up_ax, 'Up')
+        self.e_up_button.on_clicked(self.energy_button_up)
+
+        self.e_down_button = Button(self.energy_down_ax, 'Down')
+        self.e_down_button.on_clicked(self.energy_button_down)
+
+    def add_angle_button(self):
+        # Initialize angle button
+        self.a_button_fig = plt.figure()
+        self.angle_up_ax = self.a_button_fig.add_axes((0.05, 0.65, 0.90, 0.30))
+        self.angle_text_ax = self.a_button_fig.add_axes((0.05, 0.45, 0.90, 0.15))
+        self.angle_text = self.angle_text_ax.text(0.5, 0.5, 'Angle Test',
+                                                  horizontalalignment='center',
+                                                  fontsize=12)
+        self.angle_text_ax.axis('off')
+        self.angle_down_ax = self.a_button_fig.add_axes((0.05, 0.05, 0.90, 0.30))
+
+        self.a_up_button = Button(self.angle_up_ax, 'Up')
+        self.a_up_button.on_clicked(self.angle_button_up)
+
+        self.a_down_button = Button(self.angle_down_ax, 'Down')
+        self.a_down_button.on_clicked(self.angle_button_down)
+
 
     def format_dataframe(self):
         # Get rid of useless columns.
@@ -156,13 +198,45 @@ class Viewer(object):
             self.coords[2] = event.xdata
             self.update_plot()
 
-    def update_plot(self):
-        # Unpack the current phase-space coordinates.
-        i_x, i_y, azim, energy = self.coords
+    def energy_button_up(self, event):
+        self.cur_e_bin += 1
+        self.cur_e = self.energy_edges[self.cur_e_bin]
+        self.update_plot(from_button=True)
 
-        # Find the azimuthal and energy bin indices.
-        a_bin = np.searchsorted(self.azim_edges, azim) - 1
-        e_bin = np.searchsorted(self.energy_edges, energy) - 1
+    def energy_button_down(self, event):
+        self.cur_e_bin -= 1
+        self.cur_e = self.energy_edges[self.cur_e_bin]
+        self.update_plot(from_button=True)
+
+    def angle_button_up(self, event):
+        self.cur_a_bin += 1
+        self.cur_a = self.azim_edges[self.cur_a_bin]
+        self.update_plot(from_button=True)
+
+    def angle_button_down(self, event):
+        self.cur_a_bin -= 1
+        self.cur_a = self.azim_edges[self.cur_a_bin]
+        self.update_plot(from_button=True)
+
+    def update_plot(self, from_button=False):
+        if not from_button:
+            # Unpack the current phase-space coordinates.
+            i_x, i_y, azim, energy = self.coords
+            self.cur_e = energy
+            self.cur_a = azim
+
+            # Find the azimuthal and energy bin indices.
+            a_bin = np.searchsorted(self.azim_edges, azim) - 1
+            self.cur_a_bin = a_bin
+            e_bin = np.searchsorted(self.energy_edges, energy) - 1
+            self.cur_e_bin = e_bin
+
+        elif from_button:
+            i_x, i_y = self.coords[0:2]
+            azim = self.cur_a
+            energy = self.cur_e
+            a_bin = self.cur_a_bin
+            e_bin = self.cur_e_bin
 
         # Highlight the selected spatial bin.
         pitch = 0.62992 * 2.0
@@ -188,14 +262,19 @@ class Viewer(object):
                      & (self.df['energy'] == e_bin)]
         flux = np.concatenate(([df['mean'].values[0]], df['mean'].values))
         if self.azim_line is not None: self.azim_line.remove()
-        self.azim_line, = self.azim_ax.step(self.azim_edges, flux, c='green')
+        angle_refine = np.pi/360 
+        angles, flux = redundantly_populate(self.azim_edges[:-1], flux[1:], 
+                                            angle_refine)
+        self.azim_line, = self.azim_ax.plot(angles, flux, c='green')
         if self.azim_marker is not None: self.azim_marker.remove()
         self.azim_marker = self.azim_ax.axvline(azim)
 
         # Adjust the azimuthal spectrum yscale.
         pad = 0.05 * (flux.max() - flux.min())
         pad = max(pad, 0.1*flux.max())
-        self.azim_ax.set_ylim(flux.min() - pad, flux.max() + pad)
+        self.azim_ax.set_rmax(flux.max() + pad)
+        self.azim_ax.set_rmin(0)
+        self.azim_ax.set_theta_zero_location("W")
 
         # Draw an azimuthal ray on the spatial plot.
         x0 = i_x*delta
@@ -216,6 +295,13 @@ class Viewer(object):
 
         # Redraw the image.
         self.fig.canvas.draw()
+
+        # Update buttons
+        self.energy_text.set_text('Energy: {:.3f} eV'.format(energy))
+        self.e_button_fig.canvas.draw()
+        
+        self.angle_text.set_text('Angle: {:.2f} radians'.format(azim))
+        self.a_button_fig.canvas.draw()
 
 
 if __name__ == '__main__':
