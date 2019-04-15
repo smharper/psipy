@@ -52,7 +52,9 @@ class Viewer(object):
         self.e_button_fig = plt.figure()
         self.energy_up_ax = self.e_button_fig.add_axes((0.05, 0.65, 0.90, 0.30))
         self.energy_text_ax = self.e_button_fig.add_axes((0.05, 0.45, 0.90, 0.15))
-        self.energy_text = self.energy_text_ax.text(0.5, 0.5, 'Energy Test', horizontalalignment='center', fontsize=12)
+        self.energy_text = self.energy_text_ax.text(0.5, 0.5, 'Energy Test', 
+                                                    horizontalalignment='center',
+                                                    fontsize=12)
         self.energy_text_ax.axis('off')
         self.energy_down_ax = self.e_button_fig.add_axes((0.05, 0.05, 0.90, 0.30))
 
@@ -67,7 +69,9 @@ class Viewer(object):
         self.a_button_fig = plt.figure()
         self.angle_up_ax = self.a_button_fig.add_axes((0.05, 0.65, 0.90, 0.30))
         self.angle_text_ax = self.a_button_fig.add_axes((0.05, 0.45, 0.90, 0.15))
-        self.angle_text = self.angle_text_ax.text(0.5, 0.5, 'Angle Test', horizontalalignment='center', fontsize=12)
+        self.angle_text = self.angle_text_ax.text(0.5, 0.5, 'Angle Test',
+                                                  horizontalalignment='center',
+                                                  fontsize=12)
         self.angle_text_ax.axis('off')
         self.angle_down_ax = self.a_button_fig.add_axes((0.05, 0.05, 0.90, 0.30))
 
